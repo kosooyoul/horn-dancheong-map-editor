@@ -1,50 +1,24 @@
 // 맵 에디터 기본 타입 정의
 
-export interface Position {
-  x: number;
-  y: number;
-}
+// 편집 모드: 바닥타일 / 오브젝트
+export type EditorMode = 'floor' | 'object';
 
-export interface Size {
+// 그리기 툴: 펜(개별 칠) / 채우기(연결된 같은 값 일괄 칠)
+export type EditorTool = 'pen' | 'fill';
+
+// 맵 데이터
+// - cells: 각 칸의 정수값 배열 (length === width * height)
+// - 칸의 정수값 구성: 하위 바이트(0x0000FF)=바닥타일, 다음 바이트(0x00FF00)=오브젝트
+export interface MapData {
   width: number;
   height: number;
+  cells: number[];
 }
 
-export interface MapTile {
-  id: string;
-  type: string;
-  position: Position;
-  texture?: string;
-  properties?: Record<string, any>;
-}
-
-export interface MapLayer {
-  id: string;
+// 팔레트 항목 (바닥타일 또는 오브젝트)
+// - id 0 은 "지우개"(해당 칸의 값을 비움)를 의미
+export interface PaletteItem {
+  id: number;
   name: string;
-  visible: boolean;
-  tiles: MapTile[];
-}
-
-export interface GameMap {
-  id: string;
-  name: string;
-  size: Size;
-  tileSize: number;
-  layers: MapLayer[];
-  metadata?: Record<string, any>;
-}
-
-export interface Tool {
-  id: string;
-  name: string;
-  icon: string;
-  cursor?: string;
-}
-
-export interface EditorState {
-  selectedTool: string;
-  currentLayer: string;
-  zoom: number;
-  pan: Position;
-  isGridVisible: boolean;
+  colorClass: string;
 }
