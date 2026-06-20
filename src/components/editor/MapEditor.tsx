@@ -40,30 +40,35 @@ export const MapEditor = () => {
       if (!prev) return prev;
 
       if (tool === 'fill') {
-        const nextCells = floodFill(prev, index, mode, selectedId);
-        if (nextCells === prev.cells) return prev;
-        return { ...prev, cells: nextCells };
+        const nextTiles = floodFill(prev, index, mode, selectedId);
+        if (nextTiles === prev.tiles) return prev;
+        return { ...prev, tiles: nextTiles };
       }
 
-      const nextCells = [...prev.cells];
-      nextCells[index] =
+      const nextTiles = [...prev.tiles];
+      nextTiles[index] =
         mode === 'floor'
-          ? setFloorId(nextCells[index], selectedFloorId)
-          : setObjectId(nextCells[index], selectedObjectId);
-      return { ...prev, cells: nextCells };
+          ? setFloorId(nextTiles[index], selectedFloorId)
+          : setObjectId(nextTiles[index], selectedObjectId);
+      return { ...prev, tiles: nextTiles };
     });
   };
 
   const handleApplyRect = (startIndex: number, endIndex: number) => {
     setMapData((prev) => {
       if (!prev) return prev;
-      const nextCells = fillRect(prev, startIndex, endIndex, mode, selectedId);
-      return { ...prev, cells: nextCells };
+      const nextTiles = fillRect(prev, startIndex, endIndex, mode, selectedId);
+      return { ...prev, tiles: nextTiles };
     });
   };
 
-  const handleConfirmNewMap = (width: number, height: number) => {
-    setMapData(createNewMap(width, height));
+  const handleConfirmNewMap = (
+    mapName: string,
+    width: number,
+    height: number,
+    description?: string,
+  ) => {
+    setMapData(createNewMap(mapName, width, height, description));
     setIsDialogOpen(false);
   };
 
@@ -75,7 +80,9 @@ export const MapEditor = () => {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `map-${mapData.width}x${mapData.height}.json`;
+
+    const safeName = mapData.mapName.replace(/[^a-zA-Z0-9가-힣_\- ]/g, '').trim() || 'map';
+    anchor.download = `${safeName}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -109,6 +116,7 @@ export const MapEditor = () => {
         mode={mode}
         tool={tool}
         hasMap={mapData !== null}
+        mapName={mapData?.mapName}
         onNewMap={() => setIsDialogOpen(true)}
         onLoadMap={handleLoadMap}
         onSaveMap={handleSaveMap}

@@ -6,6 +6,7 @@ interface MenuBarProps {
   mode: EditorMode;
   tool: EditorTool;
   hasMap: boolean;
+  mapName?: string;
   onNewMap: () => void;
   onLoadMap: () => void;
   onSaveMap: () => void;
@@ -31,6 +32,7 @@ export const MenuBar = ({
   mode,
   tool,
   hasMap,
+  mapName,
   onNewMap,
   onLoadMap,
   onSaveMap,
@@ -42,6 +44,11 @@ export const MenuBar = ({
       <h1 className="px-4 py-2 text-base font-light uppercase tracking-widest text-white">
         Dancheong Map Editor
       </h1>
+      {mapName && (
+        <span className="px-3 py-2 text-sm text-zinc-400" aria-label={`현재 맵: ${mapName}`}>
+          — {mapName}
+        </span>
+      )}
 
       <nav className="flex items-center gap-px" aria-label="파일 메뉴">
         <button

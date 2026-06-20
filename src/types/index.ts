@@ -7,12 +7,14 @@ export type EditorMode = 'floor' | 'object';
 export type EditorTool = 'pen' | 'fill' | 'rect';
 
 // 맵 데이터
-// - cells: 각 칸의 정수값 배열 (length === width * height)
+// - tiles: 각 칸의 정수값 배열 (length === width * height)
 // - 칸의 정수값 구성: 하위 바이트(0x0000FF)=바닥타일, 다음 바이트(0x00FF00)=오브젝트
 export interface MapData {
+  mapName: string;
+  description?: string;
   width: number;
   height: number;
-  cells: number[];
+  tiles: number[];
 }
 
 // 팔레트 항목 (바닥타일 또는 오브젝트)

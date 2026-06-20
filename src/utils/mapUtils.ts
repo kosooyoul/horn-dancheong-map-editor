@@ -24,30 +24,35 @@ export const setObjectId = (cell: number, objectId: number): number =>
   (cell & ~OBJECT_MASK) | ((objectId & 0xff) << OBJECT_SHIFT);
 
 // 기본 바닥으로 채워진 새 맵 생성
-export const createNewMap = (width: number, height: number): MapData => {
-  const cells = new Array<number>(width * height).fill(DEFAULT_FLOOR_ID);
-  return { width, height, cells };
+export const createNewMap = (
+  mapName: string,
+  width: number,
+  height: number,
+  description?: string,
+): MapData => {
+  const tiles = new Array<number>(width * height).fill(DEFAULT_FLOOR_ID);
+  return { mapName, description, width, height, tiles };
 };
 
-// (x, y) 좌표를 cells 배열 인덱스로 변환
+// (x, y) 좌표를 tiles 배열 인덱스로 변환
 export const toIndex = (x: number, y: number, width: number): number => y * width + x;
 
 // 채우기(flood fill): startIndex 칸과 상하좌우로 연결된 "같은 값" 영역을
-// 현재 모드(바닥/오브젝트)에 맞춰 targetId로 일괄 변경한 새 cells 반환
+// 현재 모드(바닥/오브젝트)에 맞춰 targetId로 일괄 변경한 새 tiles 반환
 export const floodFill = (
   mapData: MapData,
   startIndex: number,
   mode: EditorMode,
   targetId: number,
 ): number[] => {
-  const { width, height, cells } = mapData;
+  const { width, height, tiles } = mapData;
   const getId = mode === 'floor' ? getFloorId : getObjectId;
   const setId = mode === 'floor' ? setFloorId : setObjectId;
 
-  const sourceId = getId(cells[startIndex]);
-  if (sourceId === targetId) return cells;
+  const sourceId = getId(tiles[startIndex]);
+  if (sourceId === targetId) return tiles;
 
-  const nextCells = [...cells];
+  const nextTiles = [...tiles];
   const visited = new Set<number>();
   const stack: number[] = [startIndex];
 
@@ -55,9 +60,9 @@ export const floodFill = (
     const index = stack.pop()!;
     if (visited.has(index)) continue;
     visited.add(index);
-    if (getId(nextCells[index]) !== sourceId) continue;
+    if (getId(nextTiles[index]) !== sourceId) continue;
 
-    nextCells[index] = setId(nextCells[index], targetId);
+    nextTiles[index] = setId(nextTiles[index], targetId);
 
     const x = index % width;
     const y = Math.floor(index / width);
@@ -67,7 +72,7 @@ export const floodFill = (
     if (y < height - 1) stack.push(index + width);
   }
 
-  return nextCells;
+  return nextTiles;
 };
 
 // 두 인덱스를 양 끝점으로 하는 사각형 영역의 경계(min/max 좌표) 계산
@@ -90,7 +95,7 @@ export const getRectBounds = (
 };
 
 // 사각형 영역 채우기: startIndex~endIndex를 양 끝점으로 하는 사각형 내부 칸을
-// 현재 모드(바닥/오브젝트)에 맞춰 targetId로 변경한 새 cells 반환
+// 현재 모드(바닥/오브젝트)에 맞춰 targetId로 변경한 새 tiles 반환
 export const fillRect = (
   mapData: MapData,
   startIndex: number,
@@ -102,35 +107,42 @@ export const fillRect = (
   const setId = mode === 'floor' ? setFloorId : setObjectId;
   const { minX, maxX, minY, maxY } = getRectBounds(startIndex, endIndex, width);
 
-  const nextCells = [...mapData.cells];
+  const nextTiles = [...mapData.tiles];
   for (let y = minY; y <= maxY; y += 1) {
     for (let x = minX; x <= maxX; x += 1) {
       const index = y * width + x;
-      nextCells[index] = setId(nextCells[index], targetId);
+      nextTiles[index] = setId(nextTiles[index], targetId);
     }
   }
-  return nextCells;
+  return nextTiles;
 };
 
 // 맵 데이터를 JSON 문자열로 직렬화
 export const exportMapToJSON = (map: MapData): string => JSON.stringify(map, null, 2);
 
 // 알 수 없는 값이 유효한 MapData 형태인지 검증
+// 하위 호환성을 위해 구 형식(cells 필드)도 tiles로 마이그레이션하여 수용
 export const isValidMapData = (value: unknown): value is MapData => {
   if (typeof value !== 'object' || value === null) return false;
   const candidate = value as Record<string, unknown>;
-  const { width, height, cells } = candidate;
+  const { mapName, width, height } = candidate;
+  const tilesOrCells = candidate.tiles ?? candidate.cells;
 
   if (typeof width !== 'number' || typeof height !== 'number') return false;
   if (!Number.isInteger(width) || !Number.isInteger(height)) return false;
   if (width < 1 || height < 1) return false;
-  if (!Array.isArray(cells)) return false;
-  if (cells.length !== width * height) return false;
+  if (!Array.isArray(tilesOrCells)) return false;
+  if (tilesOrCells.length !== width * height) return false;
+  if (!tilesOrCells.every((cell) => typeof cell === 'number')) return false;
 
-  return cells.every((cell) => typeof cell === 'number');
+  // mapName이 없으면 빈 문자열로 처리 (구 형식 호환)
+  if (mapName !== undefined && typeof mapName !== 'string') return false;
+
+  return true;
 };
 
 // JSON 문자열에서 맵 데이터 파싱 (실패 시 null)
+// 구 형식(cells)을 새 형식(tiles)으로 자동 마이그레이션
 export const importMapFromJSON = (jsonString: string): MapData | null => {
   try {
     const parsed: unknown = JSON.parse(jsonString);
@@ -138,7 +150,22 @@ export const importMapFromJSON = (jsonString: string): MapData | null => {
       console.error('맵 불러오기 오류: 유효하지 않은 맵 데이터 형식입니다.');
       return null;
     }
-    return parsed;
+
+    const candidate = parsed as unknown as Record<string, unknown>;
+
+    // 구 형식(cells) → 신 형식(tiles) 마이그레이션
+    const tiles = (candidate.tiles ?? candidate.cells) as number[];
+    const mapName = typeof candidate.mapName === 'string' ? candidate.mapName : '불러온 맵';
+    const description =
+      typeof candidate.description === 'string' ? candidate.description : undefined;
+
+    return {
+      mapName,
+      description,
+      width: parsed.width,
+      height: parsed.height,
+      tiles,
+    };
   } catch (error) {
     console.error('맵 불러오기 오류:', error);
     return null;

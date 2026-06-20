@@ -84,7 +84,7 @@ export const MapView = ({ mapData, tool, onApplyCell, onApplyRect }: MapViewProp
           <div key={y} className="flex" role="row">
             {Array.from({ length: mapData.width }, (_, x) => {
               const index = toIndex(x, y, mapData.width);
-              const cell = mapData.cells[index];
+              const cell = mapData.tiles[index];
               const floorClass = getFloorColorClass(getFloorId(cell));
               const objectClass = getObjectColorClass(getObjectId(cell));
               const isPreview = isInRectPreview(x, y);
