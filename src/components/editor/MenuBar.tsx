@@ -40,7 +40,7 @@ export const MenuBar = ({
   return (
     <header className="flex items-center gap-px bg-zinc-900">
       <h1 className="px-4 py-2 text-base font-light uppercase tracking-widest text-white">
-        Dancheong Editor
+        Dancheong Map Editor
       </h1>
 
       <nav className="flex items-center gap-px" aria-label="파일 메뉴">
