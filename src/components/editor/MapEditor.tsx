@@ -5,6 +5,7 @@ import type { EditorMode, EditorTool, MapData } from '@/types';
 import {
   createNewMap,
   exportMapToJSON,
+  fillRect,
   floodFill,
   importMapFromJSON,
   setFloorId,
@@ -49,6 +50,14 @@ export const MapEditor = () => {
         mode === 'floor'
           ? setFloorId(nextCells[index], selectedFloorId)
           : setObjectId(nextCells[index], selectedObjectId);
+      return { ...prev, cells: nextCells };
+    });
+  };
+
+  const handleApplyRect = (startIndex: number, endIndex: number) => {
+    setMapData((prev) => {
+      if (!prev) return prev;
+      const nextCells = fillRect(prev, startIndex, endIndex, mode, selectedId);
       return { ...prev, cells: nextCells };
     });
   };
@@ -109,7 +118,12 @@ export const MapEditor = () => {
       <Palette mode={mode} selectedId={selectedId} onSelect={handleSelect} />
 
       {mapData ? (
-        <MapView mapData={mapData} tool={tool} onApplyCell={handleApplyCell} />
+        <MapView
+          mapData={mapData}
+          tool={tool}
+          onApplyCell={handleApplyCell}
+          onApplyRect={handleApplyRect}
+        />
       ) : (
         <main className="flex flex-1 items-center justify-center">
           <p className="text-sm uppercase tracking-widest text-zinc-600 dark:text-zinc-300">

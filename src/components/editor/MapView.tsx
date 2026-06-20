@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { EditorTool, MapData } from '@/types';
-import { getFloorId, getObjectId, toIndex } from '@/utils/mapUtils';
+import { getFloorId, getObjectId, getRectBounds, toIndex } from '@/utils/mapUtils';
 import {
   getFloorColorClass,
   getObjectColorClass,
@@ -13,22 +13,43 @@ interface MapViewProps {
   mapData: MapData;
   tool: EditorTool;
   onApplyCell: (index: number) => void;
+  onApplyRect: (startIndex: number, endIndex: number) => void;
 }
 
-export const MapView = ({ mapData, tool, onApplyCell }: MapViewProps) => {
+interface RectSelection {
+  startIndex: number;
+  endIndex: number;
+}
+
+export const MapView = ({ mapData, tool, onApplyCell, onApplyRect }: MapViewProps) => {
   const isPaintingRef = useRef(false);
+  const [rectSelection, setRectSelection] = useState<RectSelection | null>(null);
 
   const handlePointerUp = () => {
     isPaintingRef.current = false;
+    if (rectSelection) {
+      onApplyRect(rectSelection.startIndex, rectSelection.endIndex);
+      setRectSelection(null);
+    }
   };
 
   const handleCellPointerDown = (index: number) => {
+    if (tool === 'rect') {
+      setRectSelection({ startIndex: index, endIndex: index });
+      return;
+    }
+
     // 채우기 툴은 드래그가 아닌 단일 클릭으로만 적용
     isPaintingRef.current = tool === 'pen';
     onApplyCell(index);
   };
 
   const handleCellPointerEnter = (index: number) => {
+    if (tool === 'rect') {
+      setRectSelection((prev) => (prev ? { ...prev, endIndex: index } : prev));
+      return;
+    }
+
     if (!isPaintingRef.current) return;
     onApplyCell(index);
   };
@@ -37,6 +58,15 @@ export const MapView = ({ mapData, tool, onApplyCell }: MapViewProps) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
     onApplyCell(index);
+  };
+
+  const rectBounds = rectSelection
+    ? getRectBounds(rectSelection.startIndex, rectSelection.endIndex, mapData.width)
+    : null;
+
+  const isInRectPreview = (x: number, y: number): boolean => {
+    if (!rectBounds) return false;
+    return x >= rectBounds.minX && x <= rectBounds.maxX && y >= rectBounds.minY && y <= rectBounds.maxY;
   };
 
   return (
@@ -57,6 +87,7 @@ export const MapView = ({ mapData, tool, onApplyCell }: MapViewProps) => {
               const cell = mapData.cells[index];
               const floorClass = getFloorColorClass(getFloorId(cell));
               const objectClass = getObjectColorClass(getObjectId(cell));
+              const isPreview = isInRectPreview(x, y);
 
               return (
                 <button
@@ -75,6 +106,12 @@ export const MapView = ({ mapData, tool, onApplyCell }: MapViewProps) => {
                   {objectClass && (
                     <span
                       className={`h-5 w-5 border border-black/30 ${objectClass}`}
+                      aria-hidden="true"
+                    />
+                  )}
+                  {isPreview && (
+                    <span
+                      className="pointer-events-none absolute inset-0 z-10 bg-blue-500/40 outline outline-1 -outline-offset-1 outline-blue-500"
                       aria-hidden="true"
                     />
                   )}

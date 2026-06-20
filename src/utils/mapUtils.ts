@@ -70,6 +70,48 @@ export const floodFill = (
   return nextCells;
 };
 
+// 두 인덱스를 양 끝점으로 하는 사각형 영역의 경계(min/max 좌표) 계산
+export const getRectBounds = (
+  startIndex: number,
+  endIndex: number,
+  width: number,
+): { minX: number; maxX: number; minY: number; maxY: number } => {
+  const startX = startIndex % width;
+  const startY = Math.floor(startIndex / width);
+  const endX = endIndex % width;
+  const endY = Math.floor(endIndex / width);
+
+  return {
+    minX: Math.min(startX, endX),
+    maxX: Math.max(startX, endX),
+    minY: Math.min(startY, endY),
+    maxY: Math.max(startY, endY),
+  };
+};
+
+// 사각형 영역 채우기: startIndex~endIndex를 양 끝점으로 하는 사각형 내부 칸을
+// 현재 모드(바닥/오브젝트)에 맞춰 targetId로 변경한 새 cells 반환
+export const fillRect = (
+  mapData: MapData,
+  startIndex: number,
+  endIndex: number,
+  mode: EditorMode,
+  targetId: number,
+): number[] => {
+  const { width } = mapData;
+  const setId = mode === 'floor' ? setFloorId : setObjectId;
+  const { minX, maxX, minY, maxY } = getRectBounds(startIndex, endIndex, width);
+
+  const nextCells = [...mapData.cells];
+  for (let y = minY; y <= maxY; y += 1) {
+    for (let x = minX; x <= maxX; x += 1) {
+      const index = y * width + x;
+      nextCells[index] = setId(nextCells[index], targetId);
+    }
+  }
+  return nextCells;
+};
+
 // 맵 데이터를 JSON 문자열로 직렬화
 export const exportMapToJSON = (map: MapData): string => JSON.stringify(map, null, 2);
 

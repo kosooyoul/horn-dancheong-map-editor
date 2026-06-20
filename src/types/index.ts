@@ -3,8 +3,8 @@
 // 편집 모드: 바닥타일 / 오브젝트
 export type EditorMode = 'floor' | 'object';
 
-// 그리기 툴: 펜(개별 칠) / 채우기(연결된 같은 값 일괄 칠)
-export type EditorTool = 'pen' | 'fill';
+// 그리기 툴: 펜(개별 칠) / 채우기(연결된 같은 값 일괄 칠) / 사각형(영역 지정 칠)
+export type EditorTool = 'pen' | 'fill' | 'rect';
 
 // 맵 데이터
 // - cells: 각 칸의 정수값 배열 (length === width * height)

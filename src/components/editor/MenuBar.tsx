@@ -21,6 +21,7 @@ const MODE_BUTTONS: { mode: EditorMode; label: string }[] = [
 const TOOL_BUTTONS: { tool: EditorTool; label: string }[] = [
   { tool: 'pen', label: '펜' },
   { tool: 'fill', label: '채우기' },
+  { tool: 'rect', label: '사각형' },
 ];
 
 const ACTION_BUTTON_CLASS =
